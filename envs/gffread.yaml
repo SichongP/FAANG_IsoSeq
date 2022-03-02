@@ -1,0 +1,13 @@
+name: gffread
+channels:
+  - conda-forge
+  - bioconda
+  - defaults
+  - maximinio
+dependencies:
+  - _libgcc_mutex=0.1=main
+  - gffread=0.12.1=h8b12597_0
+  - libgcc-ng=9.1.0=hdf63c60_0
+  - libstdcxx-ng=9.1.0=hdf63c60_0
+  - zlib=1.2.11=h7b6447c_3
+prefix: /home/pengsc/bin/miniconda3/envs/gffread
