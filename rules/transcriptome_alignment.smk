@@ -56,7 +56,7 @@ rule indexIsoseqTranscriptome:
     resources: mem_mb=8000, mem_mb_bmm=8000, time_min=100, cpus=1, cpus_bmm=1
     shell:
      """
-     bwa index all_samples.fa
+     bwa index {input.fa}
      """
 
 rule IsoseqTranscriptome:
