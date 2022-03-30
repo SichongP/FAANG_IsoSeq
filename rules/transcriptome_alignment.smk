@@ -1,4 +1,4 @@
-wildcard_constraints:
+ wildcard_constraints:
     ref = "[a-zA-Z]+"
 
 rule trim:
@@ -73,8 +73,8 @@ rule IsoseqTranscriptome:
 rule bam_stat:
     input: bam = "Results/mapping/{ref}/{file}.sorted.bam", bai = "Results/mapping/{ref}/{file}.sorted.bam.bai"
     output: "Results/mapping/stats/{ref}_{file}.stats.txt"
-    params: partition='med2'
-    resources: mem_mb=8000, time_min=120, cpus=4
+    params: partition='bmm'
+    resources: mem_mb=15000, time_min=120, cpus=4
     conda: "../envs/samtools.yaml"
     shell:
      """
