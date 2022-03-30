@@ -1,4 +1,4 @@
-import glob, os
+ import glob, os
 localrules: rename_files, unzip_fastq, moveFiles, get_counts_post_confirm_collapse
 configfile: "config.yaml"
 
@@ -34,14 +34,14 @@ for file in glob.glob("data/RNAseq_fq/*R1*gz"):
 
 rule all:
     input:
-        expand("Results/salmon/{step}/{file}/quant.sf", file = ALL_RNASEQ, step = ['sqanti', 'chained', 'annotated', 'refseq', 'ensembl']),
-        expand("Results/salmon/{step}/{file}/quant.sf", file = FILES, step = ['collapsed']),
-        #"Results/Annotated/all_samples.gff3"
-        "Results/figures/profile/all_samples.tab",
-        "Results/figures/ATACseq_profile/all_samples.tab",
-        expand("Results/Enrichment/{stage}/{file}/all_samples.tsv", file =  FILES, stage = ['Annotated', 'collapsed', 'Chained', 'SQANTI3', 'RefSeq', 'ensembl']),
+        expand("Results/salmon/{step}/{file}/quant.sf", file = ALL_RNASEQ, step = ['annotated', 'refseq', 'ensembl']),
+        #expand("Results/salmon/{step}/{file}/quant.sf", file = FILES, step = ['collapsed']),
+        "Results/Annotated/all_samples.gff3",
+#        "Results/figures/profile/all_samples.tab",
+#        "Results/figures/ATACseq_profile/all_samples.tab",
+#        expand("Results/Enrichment/{stage}/{file}/all_samples.tsv", file =  FILES, stage = ['Annotated', 'collapsed', 'Chained', 'SQANTI3', 'RefSeq', 'ensembl']),
         expand("Results/mapping/stats/{ref}_{file}.stats.txt", ref = ['refSeqTranscriptomeOnly', 'IsoSeqTranscriptomeOnly', 'ensembleTranscriptomeOnly'], file = ALL_RNASEQ),
-        expand("Results/Rarefaction/{file}.{by}.txt", by = ['pbgene', 'pbid'], file = FILES)
+        #expand("Results/Rarefaction/{file}.{by}.txt", by = ['pbgene', 'pbid'], file = FILES)
         
 rule refine:
     # This rule removes polyA tails and concatemers from ccs reads to generate FLNC (full length non-chimeric) transcripts
@@ -156,11 +156,11 @@ rule getAbundance:
      """
 
 rule filterByAbundance:
-    # This rule filters collapsed transcripts by their abundance (minimum 2 counts)
+    # This rule filters collapsed transcripts by their abundance (minimum 5 counts)
     input:
         gff = "Results/Collapsed/{file}.collapsed.gff",
         counts = "Results/Collapsed/{file}.collapsed.abundance.txt"
-    output: "Results/Collapsed/{file}.collapsed.min_fl_2.gff"
+    output: "Results/Collapsed/{file}.collapsed.min_fl_5.gff"
     params:
         input_prefix = lambda wildcards: "Results/Collapsed/{file}.collapsed".format(file = wildcards.file),
         partition = 'med2'
@@ -171,15 +171,15 @@ rule filterByAbundance:
     conda: "envs/cupcake.yaml"
     shell:
      """
-     filter_by_count.py --min_count 2 --dun_use_group_count {params.input_prefix}
+     filter_by_count.py --min_count 5 --dun_use_group_count {params.input_prefix}
      """
 
 rule filter5primedegraded:
     # This rule removes reads if 5 prime is deemed degraded (shorter 5' with identical 3' sequences)
-    input: "Results/Collapsed/{file}.collapsed.min_fl_2.gff"
-    output: "Results/Collapsed/{file}.collapsed.min_fl_2.filtered.gff", "Results/Collapsed/{file}.collapsed.min_fl_2.filtered.abundance.txt", "Results/Collapsed/{file}.collapsed.min_fl_2.filtered.rep.fa"
+    input: "Results/Collapsed/{file}.collapsed.min_fl_5.gff"
+    output: "Results/Collapsed/{file}.collapsed.min_fl_5.filtered.gff", "Results/Collapsed/{file}.collapsed.min_fl_5.filtered.abundance.txt", "Results/Collapsed/{file}.collapsed.min_fl_5.filtered.rep.fa"
     params:
-        input_prefix = lambda wildcards: "Results/Collapsed/{file}.collapsed.min_fl_2".format(file = wildcards.file),
+        input_prefix = lambda wildcards: "Results/Collapsed/{file}.collapsed.min_fl_5".format(file = wildcards.file),
         partition = 'med2'
     resources:
         cpus = 1, cpus_bmm = 1,
@@ -195,14 +195,14 @@ rule moveFiles:
     # This rule reorganizes files so they can be chained together
     # See https://github.com/Magdoll/cDNA_Cupcake/wiki/Cupcake:-supporting-scripts-for-Iso-Seq-after-clustering-step#chain for details
     input:
-        expand("Results/Collapsed/{file}.collapsed.min_fl_2.filtered.gff", file = FILES),
-        expand("Results/Collapsed/{file}.collapsed.min_fl_2.filtered.abundance.txt", file = FILES),
-        expand("Results/Collapsed/{file}.collapsed.min_fl_2.filtered.rep.fa", file = FILES),
+        expand("Results/Collapsed/{file}.collapsed.min_fl_5.filtered.gff", file = FILES),
+        expand("Results/Collapsed/{file}.collapsed.min_fl_5.filtered.abundance.txt", file = FILES),
+        expand("Results/Collapsed/{file}.collapsed.min_fl_5.filtered.rep.fa", file = FILES),
         expand("Results/Collapsed/{file}.collapsed.group.txt", file = FILES)
     output: 
-        expand("Results/Collapsed/{file}/collapsed.min_fl_2.filtered.gff", file = FILES),
-        expand("Results/Collapsed/{file}/collapsed.min_fl_2.filtered.abundance.txt", file = FILES),
-        expand("Results/Collapsed/{file}/collapsed.min_fl_2.filtered.rep.fa", file = FILES),
+        expand("Results/Collapsed/{file}/collapsed.min_fl_5.filtered.gff", file = FILES),
+        expand("Results/Collapsed/{file}/collapsed.min_fl_5.filtered.abundance.txt", file = FILES),
+        expand("Results/Collapsed/{file}/collapsed.min_fl_5.filtered.rep.fa", file = FILES),
         expand("Results/Collapsed/{file}/collapsed.group.txt", file = FILES),
         config = "Results/Chained/chaining.config"
 
@@ -212,7 +212,7 @@ rule moveFiles:
      for name in {params.files}
      do
          mkdir -p Results/Collapsed/${{name}}
-         for file in Results/Collapsed/*${{name}}.collapsed.{{min_fl_2.filtered.gff,min_fl_2.filtered.abundance.txt,min_fl_2.filtered.rep.fa,group.txt}}
+         for file in Results/Collapsed/*${{name}}.collapsed.{{min_fl_5.filtered.gff,min_fl_5.filtered.abundance.txt,min_fl_5.filtered.rep.fa,group.txt}}
          do
              mv $file Results/Collapsed/${{name}}/$(echo $(basename $file) | sed -e "s/${{name}}\.//")
          done
@@ -220,15 +220,15 @@ rule moveFiles:
      done
      echo "" >> {output.config}
      echo "GROUP_FILENAME=collapsed.group.txt" >> {output.config}
-     echo "GFF_FILENAME=collapsed.min_fl_2.filtered.gff" >> {output.config}
-     echo "COUNT_FILENAME=collapsed.min_fl_2.filtered.abundance.txt" >> {output.config}
-     echo  "FASTQ_FILENAME=collapsed.min_fl_2.filtered.rep.fastq" >> {output.config}
+     echo "GFF_FILENAME=collapsed.min_fl_5.filtered.gff" >> {output.config}
+     echo "COUNT_FILENAME=collapsed.min_fl_5.filtered.abundance.txt" >> {output.config}
+     echo  "FASTQ_FILENAME=collapsed.min_fl_5.filtered.rep.fastq" >> {output.config}
      """
 
 rule fa2fq:
     # Generate generic fastq files from fasta files
-    input: "Results/Collapsed/{file}/collapsed.min_fl_2.filtered.rep.fa"
-    output: "Results/Collapsed/{file}/collapsed.min_fl_2.filtered.rep.fastq"
+    input: "Results/Collapsed/{file}/collapsed.min_fl_5.filtered.rep.fa"
+    output: "Results/Collapsed/{file}/collapsed.min_fl_5.filtered.rep.fastq"
     params: partition = 'bmm'
     conda: "envs/cupcake.yaml"
     resources:
@@ -244,9 +244,9 @@ rule chainSamples:
     # This rule chains transcripts from replicates 
     input:
         group = expand("Results/Collapsed/{file}/collapsed.group.txt", file = FILES),
-        gff = expand("Results/Collapsed/{file}/collapsed.min_fl_2.filtered.gff", file = FILES),
-        counts = expand("Results/Collapsed/{file}/collapsed.min_fl_2.filtered.abundance.txt", file = FILES),
-        fq = expand("Results/Collapsed/{file}/collapsed.min_fl_2.filtered.rep.fastq", file = FILES),
+        gff = expand("Results/Collapsed/{file}/collapsed.min_fl_5.filtered.gff", file = FILES),
+        counts = expand("Results/Collapsed/{file}/collapsed.min_fl_5.filtered.abundance.txt", file = FILES),
+        fq = expand("Results/Collapsed/{file}/collapsed.min_fl_5.filtered.rep.fastq", file = FILES),
         config = "Results/Chained/chaining.config"
     output:
         gff = "Results/Chained/all_samples.gff",
@@ -426,7 +426,7 @@ rule annotate_sq_tx:
         cpus = 1, cpus_bmm = 1,
         mem_mb = 20000, mem_mb_bmm = 20000,
         time_min = 300
-    params: partition = 'bmm'
+    params: partition = 'bmh'
     script: "scripts/filter_consolidate_sq_tx.py"
     
 rule plotEnrichment_filtered_combined:
@@ -535,7 +535,7 @@ rule plotEnrichment_ensembl:
 
 rule plotEnrichment_collapsed:
     input: 
-        gff = "Results/Collapsed/{file}/collapsed.min_fl_2.filtered.gff",
+        gff = "Results/Collapsed/{file}/collapsed.min_fl_5.filtered.gff",
         bam = "data/SR_bam/{file}.markDup.bam"
     output: 
         pdf = "Results/Enrichment/collapsed/{file}/all_samples.pdf",
