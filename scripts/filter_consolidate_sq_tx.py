@@ -50,11 +50,15 @@ classification['salmonIsoformID'] = classification.apply(lambda x: x['isoform'] 
 classification = classification.merge(read_count_df, left_on = 'salmonIsoformID', right_on = 'Name', how = 'left')
 tx_with_cov = classification[((classification[sample_names]>2).sum(axis = 1)>=2) & (classification[sample_names].mean(axis = 1) > 5)]['isoform'].to_list()
 
+junctions = pd.read_csv(input_junctions, sep = '\t')
+junctions['log_mean_unique_coverage'] = junctions.loc[:,junctions.columns.str.contains('unique')].mean(axis = 1)
+no_junction_cov = junctions[junctions['log_mean_unique_coverage']==0]['isoform'].unique()
+
 #intrapriming = classification[['isoform', 'perc_A_downstream_TTS', 'seq_A_downstream_TTS']]
 #intrapriming['intrapriming'] = (intrapriming['perc_A_downstream_TTS'] >= 60) | intrapriming['seq_A_downstream_TTS'].str.startswith('A'*6)
 #intrapriming_tx = intrapriming[intrapriming['intrapriming']]['isoform']
 NMD_tx = classification[classification['predicted_NMD'].fillna(False).astype(bool)]['isoform']
-tx_to_remove = NMD_tx.to_list()
+tx_to_remove = NMD_tx.to_list() + list(no_junction_cov)
 
 classification_filtered = classification[(~classification['isoform'].isin(tx_to_remove)) & (classification['isoform'].isin(tx_with_cov))]
 sq_gtf_filtered = sq_gtf[sq_gtf['PBtranscript_id'].isin(classification_filtered.isoform)]
@@ -68,10 +72,11 @@ def parse_transcript(row):
     if row['type'] == 'transcript':
         incomplete_3_prime = True if row['perc_A_downstream_TTS'] >= 60 or str(row['seq_A_downstream_TTS']).startswith('A'*6) else False
         TX = [row['seqID'], 'PacBio', 'mRNA', row['start'], row['end'], '.', row['strand_x'], '.', 
-              "ID={tx};Parent={gene};Name={sym};incomplete_3_prime={inc3prime};structural_category={structural_category};num_exons={num_exons}".format(
+              "ID={tx};Parent={gene};Name={sym};incomplete_3_prime={inc3prime};structural_category={structural_category};num_exons={num_exons}; FAANG_ID={faang_id}".format(
                   tx = tx_id, gene = gene_id, sym = symbol,
                   inc3prime = incomplete_3_prime, num_exons = row['exons'],
-                  structural_category = row['structural_category']
+                  structural_category = row['structural_category'],
+                  faang_id = row['isoform']
               )
              ]
         if np.isnan(row['CDS_length']):
