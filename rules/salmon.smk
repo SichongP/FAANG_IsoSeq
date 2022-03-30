@@ -10,7 +10,7 @@ rule salmon_sqanti_idx:
     resources:
         cpus = 12, cpus_bmm = 12,
         mem_mb = 30000, mem_mb_bmm = 30000,
-        time_min = 60
+        time_min = 300
     shell:
      """
      grep "^>" <(cat {config[ref_ec3]}) | cut -d " " -f 1 > {params.dir}/decoys.txt
@@ -47,7 +47,7 @@ rule salmon_chained_idx:
     resources:
         cpus = 12, cpus_bmm = 12,
         mem_mb = 30000, mem_mb_bmm = 30000,
-        time_min = 60
+        time_min = 300
     shell:
      """
      sed -n '1~4s/^@/>/p;2~4p' {input} > {params.dir}/temp_tx.fa
@@ -68,7 +68,7 @@ rule salmon_chained:
     resources:
         cpus = 12, cpus_bmm = 12,
         mem_mb = 30000, mem_mb_bmm = 30000,
-        time_min = 60
+        time_min = 300
     params: dir = "Results/salmon/chained", partition = "bmm"
     shell:
      """
@@ -85,7 +85,7 @@ rule salmon_collapsed_idx:
     resources:
         cpus = 12, cpus_bmm = 12,
         mem_mb = 30000, mem_mb_bmm = 30000,
-        time_min = 60
+        time_min = 300
     shell:
      """
      sed -n '1~4s/^@/>/p;2~4p' {input} > {params.dir}/temp_tx.fa
@@ -106,7 +106,7 @@ rule salmon_collapsed:
     resources:
         cpus = 12, cpus_bmm = 12,
         mem_mb = 30000, mem_mb_bmm = 30000,
-        time_min = 60
+        time_min = 300
     params:
         dir = lambda wildcards: "Results/salmon/collapsed/{file}".format(file = wildcards.file),
         partition = "bmm"
@@ -134,12 +134,12 @@ rule salmon_annotated_idx:
     output: "Results/salmon/annotated/gentrome.fa.gz"
     params:
         dir = "Results/salmon/annotated",
-        partition = "med2"
+        partition = "bmm"
     conda: "../envs/salmon.yaml"
     resources:
         cpus = 12, cpus_bmm = 12,
         mem_mb = 30000, mem_mb_bmm = 30000,
-        time_min = 60
+        time_min = 300
     shell:
      """
      grep "^>" <(cat {config[ref_ec3]}) | cut -d " " -f 1 > {params.dir}/decoys.txt
@@ -176,7 +176,7 @@ rule salmon_refseq_idx:
     resources:
         cpus = 12, cpus_bmm = 12,
         mem_mb = 30000, mem_mb_bmm = 30000,
-        time_min = 60
+        time_min = 300
     shell:
      """
      grep "^>" <(cat {config[ref_ec3]}) | cut -d " " -f 1 > {params.dir}/decoys.txt
@@ -213,7 +213,7 @@ rule salmon_ensembl_idx:
     resources:
         cpus = 12, cpus_bmm = 12,
         mem_mb = 30000, mem_mb_bmm = 30000,
-        time_min = 60
+        time_min = 300
     shell:
      """
      grep "^>" <(cat {config[ref_ec3]}) | cut -d " " -f 1 > {params.dir}/decoys.txt
